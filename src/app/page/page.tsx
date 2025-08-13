@@ -14,7 +14,7 @@ export default function CreateConfessionPage() {
     e.preventDefault();
     if (!user) return;
 
-    const res = await fetch(`${process.env.BACKEND_URL}/c/create`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/c/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -13,7 +13,7 @@ export default function SubmitConfession() {
     e.preventDefault();
     if (!confessionText) return;
 
-    const res = await fetch(`${process.env.BACKEND_URL}/c/${username}/confess`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${username}/confess`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: confessionText }),
