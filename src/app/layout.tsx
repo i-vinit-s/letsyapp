@@ -45,7 +45,7 @@ export default function RootLayout({
       <html lang="en" className="dark">
         <body className={`${barlow.variable} bg-white text-gray-900`}>
           <Navbar />
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen bg-white text-black">{children}</main>
           <Footer />
         </body>
       </html>
