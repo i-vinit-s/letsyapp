@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Barlow } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 
 const barlow = Barlow({
   subsets: ["latin"],
@@ -23,14 +24,6 @@ export const metadata: Metadata = {
       "Post, react, and discover confessions without revealing your identity.",
     url: "https://letsyapp.fun",
     siteName: "Let´sYapp",
-    // images: [
-    //   {
-    //     url: "/og-image.png",
-    //     width: 1200,
-    //     height: 630,
-    //     alt: "Let´sYapp",
-    //   },
-    // ],
     type: "website",
   },
 };
@@ -44,9 +37,12 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="dark">
         <body className={`${barlow.variable} bg-white text-gray-900`}>
-          <Navbar />
-          <main className="min-h-screen bg-white text-black">{children}</main>
-          <Footer />
+          {/* This wrapper will handle smooth scrolling */}
+          <ClientLayoutWrapper>
+            <Navbar />
+            <main className="min-h-screen bg-white text-black">{children}</main>
+            <Footer />
+          </ClientLayoutWrapper>
         </body>
       </html>
     </ClerkProvider>

@@ -20,7 +20,7 @@ export default function Hero() {
           className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 text-gray-900"
         >
           Share Your{" "}
-          <span className="bg-gradient-to-r from-black via-gray-700 to-black bg-clip-text text-transparent">
+          <span className="relative inline-block px-4 py-1 rounded-3xl bg-black text-white">
             Truth
           </span>{" "}
           Without Fear
@@ -33,9 +33,9 @@ export default function Hero() {
           transition={{ delay: 0.2, duration: 0.8 }}
           className="text-base sm:text-lg text-neutral-600 mb-8"
         >
-          LetsYapp is your safe space for anonymous confessions.
-          Speak your mind, connect with others, and be heard —
-          no logins, no judgments, just real stories.
+          LetsYapp is your safe space for anonymous confessions. Speak your
+          mind, connect with others, and be heard — no logins, no judgments,
+          just real stories.
         </motion.p>
 
         <motion.div
