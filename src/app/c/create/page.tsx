@@ -29,7 +29,7 @@ export default function CreateConfessionPage() {
     }
 
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/c/new`, {
+      const res = await fetch(`${process.env.BACKEND_URL || "http://localhost:5000"}/c/new`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

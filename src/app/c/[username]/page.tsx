@@ -22,7 +22,7 @@ export default function UserConfessionPage() {
 
   useEffect(() => {
     if (!username) return;
-    fetch(`${process.env.BACKEND_URL}/c/${username}`)
+    fetch(`${process.env.BACKEND_URL || "http://localhost:5000"}/c/${username}`)
       .then((res) => res.json())
       .then((data) => setPage(data))
       .catch((err) => console.error(err));

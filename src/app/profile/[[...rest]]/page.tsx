@@ -14,7 +14,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (isSignedIn && user) {
       // Send user data to backend
-      fetch(`${process.env.BACKEND_URL}/auth/clerk`, {
+      fetch(`${process.env.BACKEND_URL || "http://localhost:5000"}/auth/clerk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
