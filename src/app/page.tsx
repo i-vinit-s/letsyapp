@@ -80,7 +80,7 @@ export default function Hero() {
               duration: 18 + index * 3,
               ease: "linear",
             }}
-            className="whitespace-nowrap text-black/10 text-5xl sm:text-7xl font-extrabold uppercase"
+            className="whitespace-nowrap text-black/10 text-9xl sm:text-9xl font-extrabold uppercase"
           >
             {text}
           </motion.div>
