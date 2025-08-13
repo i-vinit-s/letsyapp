@@ -45,14 +45,14 @@ export default function Footer() {
         {/* Bottom Section */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
           <span>© {new Date().getFullYear()} Let´sYapp. All rights reserved.</span>
-          {/* <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">
+          <div className="flex gap-4">
+            <a href="/privacy" className="hover:text-white transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="hover:text-white transition-colors">
+            <a href="/terms" className="hover:text-white transition-colors">
               Terms of Service
             </a>
-          </div> */}
+          </div>
         </div>
       </div>
     </footer>
