@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
 type Confession = { text: string; createdAt: string };
+
 type ConfessionPageType = {
+  userId: string; // Clerk userId stored in DB
   username: string;
   displayName: string;
   avatar?: string;
@@ -14,88 +17,198 @@ type ConfessionPageType = {
 };
 
 export default function UserConfessionPage() {
+  const { user } = useUser();
   const params = useParams();
-  const username = params.username;
-  const [page, setPage] = useState<ConfessionPageType | null>(null);
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const router = useRouter();
+  
+  const [page, setPage] = useState<ConfessionPageType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({
+    displayName: "",
+    username: "",
+    avatar: "",
+  });
 
   useEffect(() => {
-    if (!username) return;
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${username}`)
-      .then((res) => res.json())
-      .then((data) => setPage(data))
-      .catch((err) => console.error(err));
-  }, [username]);
+    if (!params?.username) return;
 
-  if (!page)
+    const fetchPage = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${params.username}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch page");
+        const data = await res.json();
+        setPage(data);
+        setForm({
+          displayName: data.displayName,
+          username: data.username,
+          avatar: data.avatar || "",
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPage();
+  }, [params?.username]);
+
+  if (loading) {
     return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+  }
+
+  if (!page) {
+    return <p className="text-center mt-10 text-gray-500">Page not found</p>;
+  }
+
+
+  const handleSendConfession = () => {
+    router.push(`/c/${params.username}/confess`);
+  };
+
+  const isOwner = user?.id === page.userId;
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${params.username}`, // ✅ correct URL
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user?.id, // ✅ Clerk user id
+            displayName: form.displayName,
+            username: form.username,
+            avatar: form.avatar,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to update profile");
+      }
+
+      const data = await res.json();
+      setPage(data);
+      setIsEditing(false);
+      console.log("Updated:", data);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update profile");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-white text-black px-4 py-28 flex flex-col items-center">
-      {/* Page width ~80% */}
-      <div className="w-full max-w-[80%] flex flex-col gap-8">
-        {/* Top profile section */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-6 rounded-3xl border border-gray-300 shadow-sm">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6 py-28">
+      {/* Profile Section */}
+      <div className="w-full max-w-2xl bg-white border rounded-xl p-6 shadow-md">
+        <div className="flex items-center gap-4">
           <Image
-            src={page.avatar || "/default-avatar.png"}
-            alt="avatar"
-            width={100}
-            height={100}
-            className="rounded-full border-2 border-gray-400"
+            src={form.avatar || page.avatar || "/default-avatar.png"}
+            alt={page.displayName}
+            width={64}
+            height={64}
+            className="rounded-full border"
           />
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-bold">{page.displayName}</h1>
-            <p className="text-gray-600">@{page.username}</p>
-            <p className="text-gray-500">{page.totalConfessions} confessions</p>
+          <div>
+            {isEditing ? (
+              <>
+                <input
+                  className="block w-full border rounded-md px-2 py-1 mb-2"
+                  value={form.displayName}
+                  onChange={(e) =>
+                    setForm({ ...form, displayName: e.target.value })
+                  }
+                  placeholder="Display name"
+                />
+                <input
+                  className="block w-full border rounded-md px-2 py-1 mb-2"
+                  value={form.username}
+                  onChange={(e) =>
+                    setForm({ ...form, username: e.target.value })
+                  }
+                  placeholder="Username"
+                />
+                <input
+                  className="block w-full border rounded-md px-2 py-1"
+                  value={form.avatar}
+                  onChange={(e) => setForm({ ...form, avatar: e.target.value })}
+                  placeholder="Avatar URL"
+                />
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {page.displayName}
+                </h1>
+                <p className="text-sm text-gray-500">@{page.username}</p>
+                <p className="text-sm text-gray-600">
+                  {page.totalConfessions} confessions
+                </p>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Submit confession button */}
-        <div className="flex justify-center sm:justify-start">
+        {/* Buttons */}
+        <div className="mt-6 flex gap-3">
+          {isOwner &&
+            (isEditing ? (
+              <>
+                <button
+                  className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+                  onClick={handleSave}
+                >
+                  Save
+                </button>
+                <button
+                  className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setForm({
+                      displayName: page.displayName,
+                      username: page.username,
+                      avatar: page.avatar || "",
+                    });
+                  }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit Profile
+              </button>
+            ))}
           <button
-            onClick={() => router.push(`/c/${username}/confess`)}
-            className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-lg font-semibold hover:bg-gray-800 transition shadow-sm"
+            onClick={handleSendConfession}
+            className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
           >
-            Submit an Anonymous Confession
+            Send Confession
           </button>
         </div>
+      </div>
 
-        {/* Confessions grid */}
-        <div>
-          <h2 className="text-2xl font-semibold mb-4 border-b border-gray-300 pb-2">
-            Confessions
-          </h2>
-          {page.confessions.length === 0 ? (
-            <p className="text-gray-500 text-center">No confessions yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {page.confessions.map((c, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-50 p-4 rounded-2xl border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() =>
-                    setExpandedIdx(expandedIdx === idx ? null : idx)
-                  }
-                >
-                  {expandedIdx === idx ? (
-                    <div>
-                      <p className="break-words">{c.text}</p>
-                      <p className="text-gray-400 text-sm mt-2">
-                        {new Date(c.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                  ) : (
-                    <p>
-                      {c.text.slice(0, 120)}
-                      {c.text.length > 120 ? "..." : ""}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Confessions List */}
+      <div className="mt-6 w-full max-w-2xl space-y-4">
+        {page.confessions.map((conf, index) => (
+          <div
+            key={index}
+            className="p-4 bg-white border rounded-lg shadow-sm text-gray-800"
+          >
+            <p>{conf.text}</p>
+            <span className="text-xs text-gray-500">
+              {new Date(conf.createdAt).toLocaleString()}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
