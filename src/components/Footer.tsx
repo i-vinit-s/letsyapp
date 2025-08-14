@@ -52,6 +52,9 @@ export default function Footer() {
             <a href="/terms" className="hover:text-white transition-colors">
               Terms of Service
             </a>
+            <a href="/status" className="hover:text-white transition-colors">
+              API Status
+            </a>
           </div>
         </div>
       </div>
