@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { X } from "lucide-react";
 
 type Confession = { text: string; createdAt: string };
 
@@ -20,7 +21,7 @@ export default function UserConfessionPage() {
   const { user } = useUser();
   const params = useParams();
   const router = useRouter();
-  
+
   const [page, setPage] = useState<ConfessionPageType | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -29,6 +30,9 @@ export default function UserConfessionPage() {
     username: "",
     avatar: "",
   });
+
+  const [selectedConfession, setSelectedConfession] =
+    useState<Confession | null>(null);
 
   useEffect(() => {
     if (!params?.username) return;
@@ -40,6 +44,13 @@ export default function UserConfessionPage() {
         );
         if (!res.ok) throw new Error("Failed to fetch page");
         const data = await res.json();
+
+        // sort newest first
+        data.confessions.sort(
+          (a: Confession, b: Confession) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
         setPage(data);
         setForm({
           displayName: data.displayName,
@@ -64,7 +75,6 @@ export default function UserConfessionPage() {
     return <p className="text-center mt-10 text-gray-500">Page not found</p>;
   }
 
-
   const handleSendConfession = () => {
     router.push(`/c/${params.username}/confess`);
   };
@@ -74,12 +84,12 @@ export default function UserConfessionPage() {
   const handleSave = async () => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${params.username}`, // ✅ correct URL
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${params.username}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: user?.id, // ✅ Clerk user id
+            userId: user?.id, // Clerk user id
             displayName: form.displayName,
             username: form.username,
             avatar: form.avatar,
@@ -95,7 +105,6 @@ export default function UserConfessionPage() {
       const data = await res.json();
       setPage(data);
       setIsEditing(false);
-      console.log("Updated:", data);
     } catch (err) {
       console.error(err);
       alert("Failed to update profile");
@@ -105,7 +114,7 @@ export default function UserConfessionPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6 py-28">
       {/* Profile Section */}
-      <div className="w-full max-w-2xl bg-white border rounded-xl p-6 shadow-md">
+      <div className="w-full max-w-2xl bg-white border rounded-xl p-6 shadow-md border-black">
         <div className="flex items-center gap-4">
           <Image
             src={form.avatar || page.avatar || "/default-avatar.png"}
@@ -160,13 +169,13 @@ export default function UserConfessionPage() {
             (isEditing ? (
               <>
                 <button
-                  className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+                  className="flex-1 px-4 py-2 border border-black rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
                   onClick={handleSave}
                 >
                   Save
                 </button>
                 <button
-                  className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+                  className="flex-1 px-4 py-2 border border-black rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
                   onClick={() => {
                     setIsEditing(false);
                     setForm({
@@ -181,7 +190,7 @@ export default function UserConfessionPage() {
               </>
             ) : (
               <button
-                className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+                className="flex-1 px-4 py-2 border border-black rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
                 onClick={() => setIsEditing(true)}
               >
                 Edit Profile
@@ -189,7 +198,7 @@ export default function UserConfessionPage() {
             ))}
           <button
             onClick={handleSendConfession}
-            className="flex-1 px-4 py-2 border rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
+            className="flex-1 px-4 py-2 border border-black rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
           >
             Send Confession
           </button>
@@ -201,15 +210,43 @@ export default function UserConfessionPage() {
         {page.confessions.map((conf, index) => (
           <div
             key={index}
-            className="p-4 bg-white border rounded-lg shadow-sm text-gray-800"
+            className="p-4 bg-white border rounded-xl shadow hover:shadow-lg cursor-pointer transition-all border-black"
+            onClick={() => setSelectedConfession(conf)}
           >
-            <p>{conf.text}</p>
+            <p className="text-gray-900 whitespace-pre-wrap break-words line-clamp-3">
+              {conf.text}
+            </p>
             <span className="text-xs text-gray-500">
               {new Date(conf.createdAt).toLocaleString()}
             </span>
           </div>
         ))}
       </div>
+
+      {/* Modal for full confession */}
+      {selectedConfession && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-center items-center z-50 px-4">
+          <div className="relative bg-white p-6 rounded-xl shadow-lg max-w-lg w-full">
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedConfession(null)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-black"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Confession text */}
+            <p className="text-gray-900 whitespace-pre-wrap break-words">
+              {selectedConfession.text}
+            </p>
+
+            {/* Timestamp */}
+            <span className="text-xs text-gray-500 block mt-3">
+              {new Date(selectedConfession.createdAt).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
