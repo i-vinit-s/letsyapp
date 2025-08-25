@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { X, Trash } from "lucide-react";
 
-type Confession = { text: string; createdAt: string };
+type Confession = { _id: string; text: string; createdAt: string };
 
 type ConfessionPageType = {
   userId: string; // Clerk userId stored in DB
@@ -108,6 +108,46 @@ export default function UserConfessionPage() {
     } catch (err) {
       console.error(err);
       alert("Failed to update profile");
+    }
+  };
+
+  const handleDeleteConfession = async (confession: Confession) => {
+    if (!isOwner) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete this confession with data ${params.username} with confession id ${confession._id}?`
+      )
+    )
+      return;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${params.username}/${confession._id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete confession");
+
+      // Update state locally after successful deletion
+      setPage((prev) =>
+        prev
+          ? {
+              ...prev,
+              confessions: prev.confessions.filter(
+                (c) => c._id !== confession._id
+              ),
+              totalConfessions: Math.max(prev.totalConfessions - 1, 0),
+            }
+          : prev
+      );
+
+      // close modal
+      setSelectedConfession(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete confession");
     }
   };
 
@@ -227,16 +267,33 @@ export default function UserConfessionPage() {
       {selectedConfession && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-center items-center z-50 px-4">
           <div className="relative bg-white p-6 rounded-xl shadow-lg max-w-lg w-full">
-            {/* Close button */}
-            <button
-              onClick={() => setSelectedConfession(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-black"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            {/* Header row with actions */}
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-sm text-gray-600">Confession</span>
+              <div className="flex items-center gap-3">
+                {/* Trash (Delete) button - only owner */}
+                {isOwner && (
+                  <button
+                    onClick={() => handleDeleteConfession(selectedConfession)}
+                    className="text-red-500 hover:text-red-700"
+                    title="Delete confession"
+                  >
+                    <Trash className="w-5 h-5" />
+                  </button>
+                )}
+                {/* Close button */}
+                <button
+                  onClick={() => setSelectedConfession(null)}
+                  className="text-gray-500 hover:text-black"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
             {/* Confession text */}
-            <p className="text-gray-900 whitespace-pre-wrap break-words">
+            <p className="text-gray-900 whitespace-pre-wrap break-words leading-relaxed">
               {selectedConfession.text}
             </p>
 
