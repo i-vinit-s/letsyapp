@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { X, Trash } from "lucide-react";
+import { X, Trash, Upload } from "lucide-react";
 
 type Confession = { _id: string; text: string; createdAt: string };
 
 type ConfessionPageType = {
-  userId: string; // Clerk userId stored in DB
+  userId: string;
   username: string;
   displayName: string;
   avatar?: string;
@@ -34,6 +34,8 @@ export default function UserConfessionPage() {
   const [selectedConfession, setSelectedConfession] =
     useState<Confession | null>(null);
 
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     if (!params?.username) return;
 
@@ -45,7 +47,6 @@ export default function UserConfessionPage() {
         if (!res.ok) throw new Error("Failed to fetch page");
         const data = await res.json();
 
-        // sort newest first
         data.confessions.sort(
           (a: Confession, b: Confession) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -89,7 +90,7 @@ export default function UserConfessionPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: user?.id, // Clerk user id
+            userId: user?.id,
             displayName: form.displayName,
             username: form.username,
             avatar: form.avatar,
@@ -111,11 +112,41 @@ export default function UserConfessionPage() {
     }
   };
 
+  // ---- Handle avatar upload ----
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    setUploading(true);
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/c/${params.username}/avatar`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+
+      setForm((prev) => ({ ...prev, avatar: data.url })); // update form with new Cloudinary URL
+    } catch (err) {
+      console.error("❌ Upload failed:", err);
+      alert("Avatar upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleDeleteConfession = async (confession: Confession) => {
     if (!isOwner) return;
     if (
       !confirm(
-        `Are you sure you want to delete this confession with data ${params.username} with confession id ${confession._id}?`
+        `Are you sure you want to delete this confession?`
       )
     )
       return;
@@ -130,7 +161,6 @@ export default function UserConfessionPage() {
 
       if (!res.ok) throw new Error("Failed to delete confession");
 
-      // Update state locally after successful deletion
       setPage((prev) =>
         prev
           ? {
@@ -143,7 +173,6 @@ export default function UserConfessionPage() {
           : prev
       );
 
-      // close modal
       setSelectedConfession(null);
     } catch (err) {
       console.error(err);
@@ -163,42 +192,92 @@ export default function UserConfessionPage() {
             height={64}
             className="rounded-full border"
           />
-          <div>
+
+          <div className="flex-1">
             {isEditing ? (
-              <>
+              <div className="space-y-3">
+                {/* Display Name Input */}
                 <input
-                  className="block w-full border rounded-md px-2 py-1 mb-2"
+                  className="block w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:outline-none border-black"
                   value={form.displayName}
                   onChange={(e) =>
                     setForm({ ...form, displayName: e.target.value })
                   }
                   placeholder="Display name"
                 />
+
+                {/* Username Input */}
                 <input
-                  className="block w-full border rounded-md px-2 py-1 mb-2"
+                  className="block w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:outline-none border-black"
                   value={form.username}
                   onChange={(e) =>
                     setForm({ ...form, username: e.target.value })
                   }
                   placeholder="Username"
                 />
-                <input
-                  className="block w-full border rounded-md px-2 py-1"
-                  value={form.avatar}
-                  onChange={(e) => setForm({ ...form, avatar: e.target.value })}
-                  placeholder="Avatar URL"
-                />
-              </>
+
+                {/* Avatar Upload */}
+                <label
+                  className={`flex items-center justify-center gap-2 w-full px-4 py-2 border rounded-lg cursor-pointer text-sm font-medium transition ${
+                    uploading
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-black text-white hover:bg-gray-800"
+                  }`}
+                >
+                  {uploading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-4 w-4 text-gray-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 
+                0 0 5.373 0 12h4zm2 
+                5.291A7.962 7.962 0 014 12H0c0 
+                3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Upload Avatar
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
             ) : (
-              <>
-                <h1 className="text-2xl font-bold text-gray-900">
+              <div className="space-y-2">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
                   {page.displayName}
                 </h1>
-                <p className="text-sm text-gray-500">@{page.username}</p>
+                <p className="text-sm md:text-base text-gray-500">
+                  @{page.username}
+                </p>
                 <p className="text-sm text-gray-600">
                   {page.totalConfessions} confessions
                 </p>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -211,6 +290,7 @@ export default function UserConfessionPage() {
                 <button
                   className="flex-1 px-4 py-2 border border-black rounded-md text-gray-800 hover:bg-black hover:text-white transition-all"
                   onClick={handleSave}
+                  disabled={uploading}
                 >
                   Save
                 </button>
@@ -263,41 +343,33 @@ export default function UserConfessionPage() {
         ))}
       </div>
 
-      {/* Modal for full confession */}
+      {/* Modal */}
       {selectedConfession && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-center items-center z-50 px-4">
           <div className="relative bg-white p-6 rounded-xl shadow-lg max-w-lg w-full">
-            {/* Header row with actions */}
             <div className="flex justify-between items-center mb-4">
               <span className="text-sm text-gray-600">Confession</span>
               <div className="flex items-center gap-3">
-                {/* Trash (Delete) button - only owner */}
                 {isOwner && (
                   <button
                     onClick={() => handleDeleteConfession(selectedConfession)}
                     className="text-red-500 hover:text-red-700"
-                    title="Delete confession"
                   >
                     <Trash className="w-5 h-5" />
                   </button>
                 )}
-                {/* Close button */}
                 <button
                   onClick={() => setSelectedConfession(null)}
                   className="text-gray-500 hover:text-black"
-                  title="Close"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* Confession text */}
             <p className="text-gray-900 whitespace-pre-wrap break-words leading-relaxed">
               {selectedConfession.text}
             </p>
-
-            {/* Timestamp */}
             <span className="text-xs text-gray-500 block mt-3">
               {new Date(selectedConfession.createdAt).toLocaleString()}
             </span>
