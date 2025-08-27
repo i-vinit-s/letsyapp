@@ -12,17 +12,35 @@ export default function Navbar() {
   const [confessionPage, setConfessionPage] = useState<{
     hasPage: boolean;
     username?: string;
-  } | null>(null);
+  }>({ hasPage: false });
 
   useEffect(() => {
-    if (isSignedIn && user) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/page`
-      )
-        .then((res) => res.json())
-        .then((data) => setConfessionPage(data))
-        .catch((err) => console.error("Error fetching page:", err));
+    async function fetchPage() {
+      if (!isSignedIn || !user) return;
+
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/page`
+        );
+
+        if (!res.ok) {
+          setConfessionPage({ hasPage: false });
+          return;
+        }
+
+        const data = await res.json();
+        if (data?.hasPage && data?.username) {
+          setConfessionPage({ hasPage: true, username: data.username });
+        } else {
+          setConfessionPage({ hasPage: false });
+        }
+      } catch (err) {
+        console.error("Error fetching page:", err);
+        setConfessionPage({ hasPage: false });
+      }
     }
+
+    fetchPage();
   }, [isSignedIn, user]);
 
   const menuItems = [{ name: "Home", href: "/" }];
@@ -70,7 +88,7 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="flex gap-3 items-center">
-              {confessionPage ? (
+              {confessionPage.hasPage ? (
                 <Link
                   href={`/c/${confessionPage.username}`}
                   className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-black font-medium"
@@ -140,7 +158,7 @@ export default function Navbar() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2 px-3 pb-2">
-                  {confessionPage ? (
+                  {confessionPage.hasPage ? (
                     <Link
                       href={`/c/${confessionPage.username}`}
                       className="block w-full text-center px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-black font-medium"
@@ -150,7 +168,7 @@ export default function Navbar() {
                     </Link>
                   ) : (
                     <Link
-                      href="/c/create"
+                      href="/c/new"
                       className="block w-full text-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 text-white font-medium"
                       onClick={() => setIsOpen(false)}
                     >
