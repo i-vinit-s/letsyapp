@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
         hostname: "img.clerk.com",
       },
     ],
-    domains: ["i.bxby.xyz"],
+    domains: ["i.bxby.xyz", "res.cloudinary.com"],
   },
 };
 
