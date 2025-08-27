@@ -1,19 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { isSignedIn } = useUser(); // check if user is signed in
+  const { user, isSignedIn } = useUser();
 
-  const menuItems = [
-    { name: "Home", href: "/" },
-    // { name: "About", href: "/about" },
-    // { name: "Confessions", href: "/confessions" },
-  ];
+  const [confessionPage, setConfessionPage] = useState<{
+    hasPage: boolean;
+    username?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/page`
+      )
+        .then((res) => res.json())
+        .then((data) => setConfessionPage(data))
+        .catch((err) => console.error("Error fetching page:", err));
+    }
+  }, [isSignedIn, user]);
+
+  const menuItems = [{ name: "Home", href: "/" }];
 
   return (
     <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] md:w-[85%]">
@@ -42,7 +54,7 @@ export default function Navbar() {
             </Link>
           ))}
 
-          {/* Authentication buttons */}
+          {/* Authenticated user menu */}
           {!isSignedIn ? (
             <div className="flex gap-3">
               <SignInButton>
@@ -57,10 +69,27 @@ export default function Navbar() {
               </SignUpButton>
             </div>
           ) : (
-            <UserButton
-              afterSignOutUrl="/" // redirect after sign out
-              appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }}
-            />
+            <div className="flex gap-3 items-center">
+              {confessionPage ? (
+                <Link
+                  href={`/c/${confessionPage.username}`}
+                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-black font-medium"
+                >
+                  Manage Page
+                </Link>
+              ) : (
+                <Link
+                  href="/c/new"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Create Page
+                </Link>
+              )}
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }}
+              />
+            </div>
           )}
         </div>
 
@@ -110,12 +139,32 @@ export default function Navbar() {
                   </SignUpButton>
                 </div>
               ) : (
-                <Link
-                  href="/profile"
-                  className="block w-full text-center px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-black font-medium"
-                >
-                  Profile
-                </Link>
+                <div className="flex flex-col gap-2 px-3 pb-2">
+                  {confessionPage ? (
+                    <Link
+                      href={`/c/${confessionPage.username}`}
+                      className="block w-full text-center px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-black font-medium"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Manage Page
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/c/create"
+                      className="block w-full text-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 text-white font-medium"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Create Page
+                    </Link>
+                  )}
+                  <Link
+                    href="/profile"
+                    className="block w-full text-center px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-black font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                </div>
               )}
             </div>
           </motion.div>
