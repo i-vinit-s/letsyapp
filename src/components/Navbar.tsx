@@ -97,7 +97,7 @@ export default function Navbar() {
                 </Link>
               ) : (
                 <Link
-                  href="/c/new"
+                  href="/c/create"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
                   Create Page
@@ -168,7 +168,7 @@ export default function Navbar() {
                     </Link>
                   ) : (
                     <Link
-                      href="/c/new"
+                      href="/c/create"
                       className="block w-full text-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 text-white font-medium"
                       onClick={() => setIsOpen(false)}
                     >
